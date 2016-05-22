@@ -61,31 +61,16 @@ def pad_sentences(sentences, padding_word="<PAD/>"):
     return padded_sentences
 
 
-def build_vocab(sentences):
-    """
-    Builds a vocabulary mapping from word to index based on the sentences.
-    Returns vocabulary mapping and inverse vocabulary mapping.
-    """
-    # Build vocabulary
-    word_counts = Counter(itertools.chain(*sentences))
-    # Mapping from index to word
-    vocabulary_inv = [x[0] for x in word_counts.most_common()]
-    vocabulary_inv = list(sorted(vocabulary_inv))
-    # Mapping from word to index
-    vocabulary = {x: i for i, x in enumerate(vocabulary_inv)}
-    return [vocabulary, vocabulary_inv]
-
-
 def build_input_data(sentences, labels, vocabulary):
     """
     Maps sentencs and labels to vectors based on a vocabulary.
     """
-    x = np.array([[vocabulary[word] for word in sentence] for sentence in sentences])
+    x = np.array([[vocabulary[word].index if word != "<PAD/>" and word in vocabulary else len(vocabulary) for word in sentence] for sentence in sentences])
     y = np.array(labels)
     return [x, y]
 
 
-def load_data():
+def load_data(model):
     """
     Loads and preprocessed data for the MR dataset.
     Returns input vectors, labels, vocabulary, and inverse vocabulary.
@@ -93,9 +78,9 @@ def load_data():
     # Load and preprocess data
     sentences, labels = load_data_and_labels()
     sentences_padded = pad_sentences(sentences)
-    vocabulary, vocabulary_inv = build_vocab(sentences_padded)
-    x, y = build_input_data(sentences_padded, labels, vocabulary)
-    return [x, y, vocabulary, vocabulary_inv]
+
+    x, y = build_input_data(sentences_padded, labels, model.vocab)
+    return [x, y]
 
 
 def batch_iter(data, batch_size, num_epochs, shuffle=True):

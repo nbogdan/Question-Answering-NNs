@@ -6,8 +6,11 @@ import os
 import time
 import datetime
 import data_helpers
+import preprocess_data
 import gensim
 from gensim import models
+
+from siamese.text_cnn_up import TextCNNUp
 from text_cnn import TextCNN
 
 # Parameters
@@ -15,16 +18,16 @@ from text_cnn import TextCNN
 
 # Model Hyperparameters
 tf.flags.DEFINE_integer("embedding_dim", 300, "Dimensionality of character embedding (default: 128)")
-tf.flags.DEFINE_string("filter_sizes", "3,4,5", "Comma-separated filter sizes (default: '3,4,5')")
+tf.flags.DEFINE_string("filter_sizes", "3,5,7", "Comma-separated filter sizes (default: '3,4,5')")
 tf.flags.DEFINE_integer("num_filters", 128, "Number of filters per filter size (default: 128)")
 tf.flags.DEFINE_float("dropout_keep_prob", 0.5, "Dropout keep probability (default: 0.5)")
 tf.flags.DEFINE_float("l2_reg_lambda", 0.0, "L2 regularizaion lambda (default: 0.0)")
 
 # Training parameters
-tf.flags.DEFINE_integer("batch_size", 64, "Batch Size (default: 64)")
+tf.flags.DEFINE_integer("batch_size", 100, "Batch Size (default: 64)")
 tf.flags.DEFINE_integer("num_epochs", 200, "Number of training epochs (default: 200)")
 tf.flags.DEFINE_integer("evaluate_every", 100, "Evaluate model on dev set after this many steps (default: 100)")
-tf.flags.DEFINE_integer("checkpoint_every", 100, "Save model after this many steps (default: 100)")
+tf.flags.DEFINE_integer("checkpoint_every", 50000, "Save model after this many steps (default: 100)")
 # Misc Parameters
 tf.flags.DEFINE_boolean("allow_soft_placement", True, "Allow device soft device placement")
 tf.flags.DEFINE_boolean("log_device_placement", False, "Log placement of ops on devices")
@@ -42,20 +45,14 @@ print("")
 
 # Load data
 print("Loading data...")
-model = gensim.models.Word2Vec.load_word2vec_format('../../../word2vec/GoogleNews-vectors-paraphrase-300.bin', binary=True)
+model = gensim.models.Word2Vec.load_word2vec_format('../../../../word2vec/GoogleNews-vectors-paraphrase-300.bin', binary=True)
 model.init_sims(replace=True)
-x, y = data_helpers.load_data(model)
-# Randomly shuffle data
-np.random.seed(10)
-shuffle_indices = np.random.permutation(np.arange(len(y)))
-x_shuffled = x[shuffle_indices]
-y_shuffled = y[shuffle_indices]
-# Split train/test set
-# TODO: This is very crude, should use cross-validation
-x_train, x_dev = x_shuffled[:-1000], x_shuffled[-1000:]
-y_train, y_dev = y_shuffled[:-1000], y_shuffled[-1000:]
+print("Loaded word2vec model")
+y_train, x1_train, x2_train = data_helpers.preprocess_data(model, "train")
+y_dev, x1_dev, x2_dev = data_helpers.preprocess_data(model, "test")
+print("Loaded MSRP data")
 
-print("Train/Dev split: {:d}/{:d}".format(len(y_train), len(y_dev)))
+#print("Train/Dev split: {:d}/{:d}".format(len(y_train), len(y_dev)))
 
 
 # Training
@@ -69,9 +66,9 @@ with tf.Graph().as_default():
     with sess.as_default():
         dict = np.append(model.syn0norm, [[0 for _ in range(FLAGS.embedding_dim)]], axis=0)
 
-        cnn = TextCNN(
+        cnn = TextCNNUp(
             dictionary = dict,
-            sequence_length=x_train.shape[1],
+            sequence_length=40,#x1_train.shape[1],
             num_classes=2,
             embedding_size=FLAGS.embedding_dim,
             filter_sizes=list(map(int, FLAGS.filter_sizes.split(","))),
@@ -123,12 +120,13 @@ with tf.Graph().as_default():
         # Initialize all variables
         sess.run(tf.initialize_all_variables())
 
-        def train_step(x_batch, y_batch):
+        def train_step(x1_batch, x2_batch, y_batch):
             """
             A single training step
             """
             feed_dict = {
-              cnn.input_x: x_batch,
+              cnn.input_x1: x1_batch,
+              cnn.input_x2: x2_batch,
               cnn.input_y: y_batch,
               cnn.dropout_keep_prob: FLAGS.dropout_keep_prob
             }
@@ -139,12 +137,13 @@ with tf.Graph().as_default():
             print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
             train_summary_writer.add_summary(summaries, step)
 
-        def dev_step(x_batch, y_batch, writer=None):
+        def dev_step(x1_batch, x2_batch, y_batch, writer=None):
             """
             Evaluates model on a dev set
             """
             feed_dict = {
-              cnn.input_x: x_batch,
+              cnn.input_x1: x1_batch,
+              cnn.input_x2: x2_batch,
               cnn.input_y: y_batch,
               cnn.dropout_keep_prob: 1.0
             }
@@ -158,15 +157,21 @@ with tf.Graph().as_default():
 
         # Generate batches
         batches = data_helpers.batch_iter(
-            list(zip(x_train, y_train)), FLAGS.batch_size, FLAGS.num_epochs)
+            list(zip(x1_train, x2_train, y_train)), FLAGS.batch_size, FLAGS.num_epochs)
         # Training loop. For each batch...
-        for batch in batches:
-            x_batch, y_batch = zip(*batch)
-            train_step(x_batch, y_batch)
+        index, dict, pairs_list = preprocess_data.read_and_index()
+        old = []
+        for i in range(100000):
+            if i % 10 == 0:
+                x1_batch, x2_batch, y_batch = zip(*batches.next())
+            else:
+                x1_batch, x2_batch, y_batch = preprocess_data.generate_train_batch(i, FLAGS.batch_size, index, dict, pairs_list)
+            train_step(x1_batch, x2_batch, y_batch)
+            old = [x1_batch, x2_batch, y_batch]
             current_step = tf.train.global_step(sess, global_step)
             if current_step % FLAGS.evaluate_every == 0:
                 print("\nEvaluation:")
-                dev_step(x_dev, y_dev, writer=dev_summary_writer)
+                dev_step(x1_dev, x2_dev, y_dev, writer=dev_summary_writer)
                 print("")
             if current_step % FLAGS.checkpoint_every == 0:
                 path = saver.save(sess, checkpoint_prefix, global_step=current_step)
