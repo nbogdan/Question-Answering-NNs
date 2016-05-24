@@ -87,7 +87,7 @@ def read_and_index():
     index = pickle.load(open("pairs_index_small_x", "rb"))
     print("opened index")
     pairs_list = pickle.load(open("pairs_list_small_x", "rb"))
-    print("opened index")
+    print("opened pairs list")
 
     random.seed(0)
     return index, dict, pairs_list
