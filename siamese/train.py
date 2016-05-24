@@ -164,7 +164,7 @@ with tf.Graph().as_default():
         batches = data_helpers.batch_iter(
             list(zip(x1_train, x2_train, y_train)), FLAGS.batch_size, FLAGS.num_epochs)
         # Training loop. For each batch...
-        #index, dict, pairs_list = preprocess_data.read_and_index()
+        index, dict, pairs_list = preprocess_data.read_and_index()
         old = []
         for i in range(100000):
             if i % 10 == 0:
