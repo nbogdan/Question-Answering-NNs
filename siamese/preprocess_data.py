@@ -58,7 +58,7 @@ def preprocess(model):
         pair_list.append((index_1, index_2))
 
         if i % 10000 == 0:
-            print str(k) + "/" + str(i)
+            print(str(k) + "/" + str(i))
         if k == 500000:
             break;
 
@@ -68,29 +68,26 @@ def preprocess(model):
         sent1 = data_helpers.build_input_data(data_helpers.pad_sentences([simple_sent1], 40, padding_word="<PAD/>"),
                                           model.vocab)
         reverse_dict[dict_sentences[entry]] = sent1
-        if len(simple_sent1) > maxlen:
-            maxlen = len(simple_sent1)
         if i % 10000 == 0:
-            print i
-            print maxlen
+            print(i)
         i += 1
 
     random.shuffle(pair_list)
     pickle.dump(reverse_dict, open("sentences_small_x", "wb"), protocol=pickle.HIGHEST_PROTOCOL)
-    print "writing sentences " + str(len(reverse_dict))
+    print("writing sentences " + str(len(reverse_dict)))
     pickle.dump(match_dictionary, open("pairs_index_small_x", "wb"), protocol=pickle.HIGHEST_PROTOCOL)
-    print "writing map " + str(len(match_dictionary))
+    print("writing map " + str(len(match_dictionary)))
     pickle.dump(pair_list, open("pairs_list_small_x", "wb"), protocol=pickle.HIGHEST_PROTOCOL)
-    print "pairs " + str(len(pair_list))
+    print("pairs " + str(len(pair_list)))
 
 
 def read_and_index():
     dict = pickle.load(open("sentences_small_x", "rb"))
-    print "opened dict"
+    print("opened dict")
     index = pickle.load(open("pairs_index_small_x", "rb"))
-    print "opened index"
+    print("opened index")
     pairs_list = pickle.load(open("pairs_list_small_x", "rb"))
-    print "opened index"
+    print("opened index")
 
     random.seed(0)
     return index, dict, pairs_list
@@ -104,8 +101,8 @@ def print_prop(numbers, model):
 
 def generate_train_batch(pos, batchsize, index, dict, pairs_list):
     batch = []
-    for i in range(batchsize / 2):
-        index_pair = (pos * batchsize / 2 + i) % len(index) + 1#random.randint(1, len(index))
+    for i in range(int(batchsize / 2)):
+        index_pair = (pos * int(batchsize / 2) + i) % len(index) + 1#random.randint(1, len(index))
 
         index_1, index_2 = pairs_list[index_pair]
         index_neg = -1
@@ -114,7 +111,7 @@ def generate_train_batch(pos, batchsize, index, dict, pairs_list):
             if index_neg in index[index_1]:
                 index_neg = -1
         if len(dict[index_neg][0]) != 40 or len(dict[index_1][0]) != 40 or len(dict[index_2][0]) != 40:
-            print "Ouch"
+            print("Ouch")
             continue
 
         if len(batch) == 0:
@@ -126,7 +123,7 @@ def generate_train_batch(pos, batchsize, index, dict, pairs_list):
     result1 = []
     result2 = []
     result3 = []
-    for i in range(len(batch) / 3):
+    for i in range(int(len(batch) / 3)):
         result1.append(batch[3 * i][0])
         result2.append(batch[3 * i + 1][0])
         result3.append(batch[3 * i + 2])

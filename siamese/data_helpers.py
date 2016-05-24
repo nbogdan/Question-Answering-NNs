@@ -15,8 +15,8 @@ def get_lemmas(sent, lemmatizer):
             lemma = lemmatizer.lemmatize(word)
         else:
             lemma = lemmatizer.lemmatize(word, pos)
-        if(type(lemma) == unicode):
-            lemma = lemma.encode('ascii', 'ignore')
+        #if(type(lemma) == unicode):
+        #    lemma = lemma.encode('ascii', 'ignore')
 
         if lemma.isdigit():
             res.append('number')
@@ -57,11 +57,13 @@ def clean_str(string):
     return string.strip().lower()
 
 def read_train():
-    lines = list(open("../data/paraphrase/msr_paraphrase_train.txt", "r").readlines())
+    #lines = list(open("../data/paraphrase/msr_paraphrase_train.txt", "r").readlines())
+    lines = list(open("../../../MSRParaphraseCorpus/msr_paraphrase_train.txt", "r").readlines())
     return lines[1:]
 
 def read_test():
-    lines = list(open("../data/paraphrase/msr_paraphrase_test.txt", "r").readlines())
+    #lines = list(open("../data/paraphrase/msr_paraphrase_test.txt", "r").readlines())
+    lines = list(open("../../../MSRParaphraseCorpus/msr_paraphrase_test.txt", "r").readlines())
     return lines[1:]
 
 def load_data_and_labels(lines):

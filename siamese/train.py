@@ -19,7 +19,7 @@ from text_cnn import TextCNN
 # Model Hyperparameters
 tf.flags.DEFINE_integer("embedding_dim", 300, "Dimensionality of character embedding (default: 128)")
 tf.flags.DEFINE_string("filter_sizes", "3,5,7", "Comma-separated filter sizes (default: '3,4,5')")
-tf.flags.DEFINE_integer("num_filters", 128, "Number of filters per filter size (default: 128)")
+tf.flags.DEFINE_integer("num_filters", 50, "Number of filters per filter size (default: 128)")
 tf.flags.DEFINE_float("dropout_keep_prob", 0.5, "Dropout keep probability (default: 0.5)")
 tf.flags.DEFINE_float("l2_reg_lambda", 0.0, "L2 regularizaion lambda (default: 0.0)")
 
@@ -152,6 +152,11 @@ with tf.Graph().as_default():
                 feed_dict)
             time_str = datetime.datetime.now().isoformat()
             print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
+
+            file = open("log2.out", "a")
+            file.write("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
+            file.write("\n")
+            file.close()
             if writer:
                 writer.add_summary(summaries, step)
 
@@ -159,7 +164,7 @@ with tf.Graph().as_default():
         batches = data_helpers.batch_iter(
             list(zip(x1_train, x2_train, y_train)), FLAGS.batch_size, FLAGS.num_epochs)
         # Training loop. For each batch...
-        index, dict, pairs_list = preprocess_data.read_and_index()
+        #index, dict, pairs_list = preprocess_data.read_and_index()
         old = []
         for i in range(100000):
             if i % 10 == 0:

@@ -31,12 +31,12 @@ class TextCNNUp(object):
         self.embedded_chars_2 = embedChars(self.input_x2)
 
         # Create a convolution + maxpool layer for each filter size
-        def convolution(input):
+        def convolution(input, num_channels = 1, num_filters=num_filters, embed_window_size=151):
             pooled_outputs = []
             for i, filter_size in enumerate(filter_sizes):
                 with tf.variable_scope("conv-maxpool-%s" % filter_size):
                     # Convolution Layer
-                    filter_shape = [filter_size, embedding_size, 1, num_filters]
+                    filter_shape = [filter_size, embed_window_size, num_channels, num_filters]
                     W = tf.get_variable("W", filter_shape, initializer=tf.truncated_normal_initializer(stddev=0.1))
                     b = tf.get_variable("b", [num_filters], initializer=tf.constant_initializer(0.1))
                     conv = tf.nn.conv2d(
@@ -48,12 +48,21 @@ class TextCNNUp(object):
                     # Apply nonlinearity
                     h = tf.nn.relu(tf.nn.bias_add(conv, b), name="relu")
                     # Maxpooling over the outputs
-                    pooled = tf.nn.max_pool(
-                        h,
-                        ksize=[1, sequence_length - filter_size + 1, 1, 1],
-                        strides=[1, 1, 1, 1],
-                        padding='VALID',
-                        name="pool")
+                    if(num_channels > 1):
+                        aux = int((filter_sizes[len(filter_sizes) - 1] + filter_sizes[0]) / 2) - 1
+                        pooled = tf.nn.avg_pool(
+                            h,
+                            ksize=[1, sequence_length - 2 * aux - (filter_size - 1), 1, 1],
+                            strides=[1, 1, 1, 1],
+                            padding='VALID',
+                            name="pool")
+                    else:
+                        pooled = tf.nn.max_pool(
+                            h,
+                            ksize=[1, filter_sizes[len(filter_sizes) - i - 1], 1, 1],
+                            strides=[1, 1, 1, 1],
+                            padding='VALID',
+                            name="pool")
                     pooled_outputs.append(pooled)
             return pooled_outputs
 
@@ -65,9 +74,20 @@ class TextCNNUp(object):
             conv2 = convolution(self.embedded_chars_2)
             data.append(conv2)
 
-        pooled_outputs = data[0] + data[1]
+        num_filters_total = num_filters * len(filter_sizes)
+        self.h_pool0 = tf.concat(3, data[0])
+        #self.h_pool_flat0 = tf.reshape(self.h_pool0, [-1, num_filters_total])
+        self.h_pool1 = tf.concat(3, data[1])
+        #self.h_pool_flat1 = tf.reshape(self.h_pool1, [-1, num_filters_total])
+
+        with tf.variable_scope("convolutions_2") as scope:
+            conv1 = convolution(self.h_pool0, num_filters_total, num_filters_total * 2, 150)
+        with tf.variable_scope("convolutions_2", reuse=True) as scope:
+            conv2 = convolution(self.h_pool1, num_filters_total, num_filters_total * 2, 150)
+
+        pooled_outputs = conv1 + conv2
         # Combine all the pooled features
-        num_filters_total = num_filters * len(filter_sizes) * 2
+        num_filters_total = num_filters_total * 2 * 6
         self.h_pool = tf.concat(3, pooled_outputs)
         self.h_pool_flat = tf.reshape(self.h_pool, [-1, num_filters_total])
 
