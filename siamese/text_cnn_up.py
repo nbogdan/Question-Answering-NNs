@@ -36,7 +36,7 @@ class TextCNNUp(object):
             for i, filter_size in enumerate(filter_sizes):
                 with tf.variable_scope("conv-maxpool-%s" % filter_size):
                     # Convolution Layer
-                    filter_shape = [filter_size, 151, 1, num_filters]
+                    filter_shape = [filter_size, 1, 1, num_filters]
                     W = tf.get_variable("W", filter_shape, initializer=tf.truncated_normal_initializer(stddev=0.1))
                     b = tf.get_variable("b", [num_filters], initializer=tf.constant_initializer(0.1))
                     conv = tf.nn.conv2d(
@@ -57,12 +57,12 @@ class TextCNNUp(object):
                     pooled_outputs.append(pooled)
             return pooled_outputs
         # Create a convolution + maxpool layer for each filter size
-        def convolution_2(input, num_channels, num_filters, embed_window_size):
+        def convolution_2(input, num_channels, num_filters):
             pooled_outputs = []
             for i, filter_size in enumerate(filter_sizes):
                 with tf.variable_scope("conv-maxpool-2-%s" % filter_size):
                     # Convolution Layer
-                    filter_shape = [filter_size, embed_window_size, num_channels, num_filters]
+                    filter_shape = [filter_size, 300, num_channels, num_filters]
                     W = tf.get_variable("W", filter_shape, initializer=tf.truncated_normal_initializer(stddev=0.1))
                     b = tf.get_variable("b", [num_filters], initializer=tf.constant_initializer(0.1))
                     conv = tf.nn.conv2d(
@@ -99,9 +99,9 @@ class TextCNNUp(object):
         #self.h_pool_flat1 = tf.reshape(self.h_pool1, [-1, num_filters_total])
 
         with tf.variable_scope("convolutions_2") as scope:
-            conv1 = convolution_2(self.h_pool0, num_filters_total, num_filters_total * 2, 150)
+            conv1 = convolution_2(self.h_pool0, num_filters_total, num_filters_total * 2)
         with tf.variable_scope("convolutions_2", reuse=True) as scope:
-            conv2 = convolution_2(self.h_pool1, num_filters_total, num_filters_total * 2, 150)
+            conv2 = convolution_2(self.h_pool1, num_filters_total, num_filters_total * 2)
 
         pooled_outputs = conv1 + conv2
         # Combine all the pooled features
