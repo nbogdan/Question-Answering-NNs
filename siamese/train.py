@@ -25,8 +25,8 @@ tf.flags.DEFINE_float("l2_reg_lambda", 0.0, "L2 regularizaion lambda (default: 0
 # Training parameters
 tf.flags.DEFINE_integer("batch_size", 100, "Batch Size (default: 64)")
 tf.flags.DEFINE_integer("num_epochs", 200, "Number of training epochs (default: 200)")
-tf.flags.DEFINE_integer("evaluate_every", 50, "Evaluate model on dev set after this many steps (default: 100)")
-tf.flags.DEFINE_integer("checkpoint_every", 50000, "Save model after this many steps (default: 100)")
+tf.flags.DEFINE_integer("evaluate_every", 100, "Evaluate model on dev set after this many steps (default: 100)")
+tf.flags.DEFINE_integer("checkpoint_every", 10000, "Save model after this many steps (default: 100)")
 # Misc Parameters
 tf.flags.DEFINE_boolean("allow_soft_placement", True, "Allow device soft device placement")
 tf.flags.DEFINE_boolean("log_device_placement", False, "Log placement of ops on devices")
@@ -141,24 +141,30 @@ with tf.Graph().as_default():
             """
             Evaluates model on a dev set
             """
-            feed_dict = {
-              cnn.input_x1: x1_batch,
-              cnn.input_x2: x2_batch,
-              cnn.input_y: y_batch,
-              cnn.dropout_keep_prob: 1.0
-            }
-            step, summaries, loss, accuracy = sess.run(
-                [global_step, dev_summary_op, cnn.loss, cnn.accuracy],
-                feed_dict)
+            added_acc = 0
+            added_loss = 0
+            for k in range(0, int(len(x1_batch) / 300) + 1):
+                edge = min([len(x1_batch) - 1, (k + 1) * 300])
+                feed_dict = {
+                  cnn.input_x1: x1_batch[k * 300: edge],
+                  cnn.input_x2: x2_batch[k * 300: edge],
+                  cnn.input_y: y_batch[k * 300: edge],
+                  cnn.dropout_keep_prob: 1.0
+                }
+                step, summaries, loss, accuracy = sess.run(
+                    [global_step, dev_summary_op, cnn.loss, cnn.accuracy],
+                    feed_dict)
+                added_acc += accuracy
+                added_loss += loss
+                print("{} acc {:g}".format(edge, accuracy))
             time_str = datetime.datetime.now().isoformat()
-            print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
+            print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, added_loss / int(len(x1_batch) / 300 + 1), added_acc / int(len(x1_batch) / 300 + 1)))
 
             file = open("log2.out", "a")
-            file.write("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
+            file.write("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, added_loss / int(len(x1_batch) / 300 + 1), added_acc / int(len(x1_batch) / 300 + 1)))
             file.write("\n")
             file.close()
-            if writer:
-                writer.add_summary(summaries, step)
+
 
         # Generate batches
         batches = data_helpers.batch_iter(
