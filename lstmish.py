@@ -142,7 +142,7 @@ softmax_c_q = Dense(EMBEDDING_DIM, activation='softmax')(concat_c_q)
 
 concat_c_q_a = concatenate([l_lstm_a, softmax_c_q], axis = 1)
 
-softmax_c_q = Dense(2, activation='softmax')(concat_c_q)
+softmax_c_q = Dense(2, activation='softmax')(concat_c_q_a)
 model = Model([context, question, answer], softmax_c_q)
 model.compile(loss='categorical_crossentropy',
               optimizer='rmsprop',
