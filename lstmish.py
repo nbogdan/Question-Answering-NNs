@@ -2,35 +2,30 @@
 # Dec 26 2016
 import numpy as np
 import pandas as pd
-from collections import defaultdict
-import re
 
 from bs4 import BeautifulSoup
-
-import sys
-import os
-
 from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
 from keras.utils.np_utils import to_categorical
+from keras.callbacks import ModelCheckpoint
 
-from keras.layers import Embedding
-from keras.layers import Dense, Input, Flatten
-from keras.layers import Conv1D, MaxPooling1D, Embedding, Merge, Dropout, LSTM, GRU, Bidirectional
-from keras.layers.merge import Concatenate
+from keras.layers import Dense, Input
+from keras.layers import Embedding, Dropout, LSTM, Bidirectional
 from keras.layers import concatenate
 from keras.models import Model
 
-from keras import backend as K
-from keras.engine.topology import Layer, InputSpec
-from keras import initializers
+import keras
+from siamese.data_helpers import get_lemmas
+import re, string
+from nltk.stem import WordNetLemmatizer
+import pickle
 
-MAX_SEQUENCE_LENGTH_Q = 1000
-MAX_SEQUENCE_LENGTH_A = 1000
-MAX_SEQUENCE_LENGTH_C = 1000
-MAX_NB_WORDS = 20000
+MAX_SEQUENCE_LENGTH_Q = 400
+MAX_SEQUENCE_LENGTH_A = 400
+MAX_SEQUENCE_LENGTH_C = 400
+MAX_NB_WORDS = 40000
 EMBEDDING_DIM = 300
-VALIDATION_SPLIT = 0.2
+VALIDATION_SPLIT = 0.1
 
 
 def clean_str(string):
@@ -44,8 +39,10 @@ def clean_str(string):
     return string.strip().lower()
 
 
-data_train = pd.read_csv('datum.txt', sep='\t')
+data_train = pd.read_csv('train_datum_.txt', sep='\t')
+data_train2 = pd.read_csv('train_datum2.txt', sep='\t', error_bad_lines=False)
 print(data_train.shape)
+print(data_train2.shape)
 
 texts_q = []
 texts_a = []
@@ -61,11 +58,45 @@ for idx in range(data_train.question.shape[0]):
     texts_c.append(clean_str(str(text.get_text().encode('ascii', 'ignore')))[1:])
     labels.append(data_train.value[idx])
 
+for idx in range(data_train2.question.shape[0]):
+    text = BeautifulSoup(data_train2.question[idx])
+    texts_q.append(clean_str(str(text.get_text().encode('ascii', 'ignore')))[1:])
+    text = BeautifulSoup(data_train2.answer[idx])
+    texts_a.append(clean_str(str(text.get_text().encode('ascii', 'ignore')))[1:])
+    text = BeautifulSoup(str(data_train2.context[idx]))
+    texts_c.append(clean_str(str(text.get_text().encode('ascii', 'ignore')))[1:])
+    labels.append(data_train2.value[idx])
+
+print('Soup is done')
+lemmatizer = WordNetLemmatizer()
+texts_c3 = [" ".join(get_lemmas(re.findall(r'\b\w+\b', s), lemmatizer)) for s in texts_c]
+texts_q3 = [" ".join(get_lemmas(re.findall(r'\b\w+\b', s), lemmatizer)) for s in texts_q]
+texts_a3 = [" ".join(get_lemmas(re.findall(r'\b\w+\b', s), lemmatizer)) for s in texts_a]
+
+with open('outfile_c2', 'wb') as fp:
+    pickle.dump(texts_c3, fp)
+with open('outfile_q2', 'wb') as fp:
+    pickle.dump(texts_q3, fp)
+with open('outfile_a2', 'wb') as fp:
+    pickle.dump(texts_a3, fp)
+print('Saved lemmas1')
+
+texts_c3 = pickle.load(open('outfile_c2', 'rb'))
+texts_q3 = pickle.load(open('outfile_q2', 'rb'))
+texts_a3 = pickle.load(open('outfile_a2', 'rb'))
+test_texts_c3 = pickle.load(open('test_outfile_c_', 'rb'))
+test_texts_q3 = pickle.load(open('test_outfile_q_', 'rb'))
+test_texts_a3 = pickle.load(open('test_outfile_a_', 'rb'))
+
 tokenizer = Tokenizer(nb_words=MAX_NB_WORDS)
-tokenizer.fit_on_texts(texts_q + texts_c + texts_a)
-sequences_q = tokenizer.texts_to_sequences(texts_q)
-sequences_a = tokenizer.texts_to_sequences(texts_a)
-sequences_c = tokenizer.texts_to_sequences(texts_c)
+tokenizer.fit_on_texts(texts_q3 + texts_c3 + texts_a3 + test_texts_a3 + test_texts_c3 + test_texts_q3)
+print('Saving tokenizer')
+with open('tokenizer2', 'wb') as fp:
+    pickle.dump(tokenizer, fp)
+tokenizer = pickle.load(open('tokenizer2', 'rb'))
+sequences_q = tokenizer.texts_to_sequences(texts_q3)
+sequences_a = tokenizer.texts_to_sequences(texts_a3)
+sequences_c = tokenizer.texts_to_sequences(texts_c3)
 
 word_index = tokenizer.word_index
 print('Found %s unique tokens.' % len(word_index))
@@ -121,6 +152,11 @@ for word, i in word_index.items():
         # words not found in embedding index will be all-zeros.
         embedding_matrix[i] = embedding_vector
 
+# print('Saving embedding matrix')
+with open('embedding_matrix2', 'wb') as fp:
+    pickle.dump(embedding_matrix, fp)
+embedding_matrix = pickle.load(open('embedding_matrix2', 'rb'))
+
 embedding_layer = Embedding(len(word_index) + 1,
                             EMBEDDING_DIM,
                             weights=[embedding_matrix],
@@ -133,24 +169,29 @@ answer = Input(shape=(MAX_SEQUENCE_LENGTH_C,), dtype='int32', name='answer')
 embedded_context = embedding_layer(context)
 embedded_question = embedding_layer(question)
 embedded_answer = embedding_layer(answer)
-l_lstm_c = Bidirectional(LSTM(100))(embedded_context)
+l_lstm_c = Bidirectional(LSTM(50))(embedded_context)
 l_lstm_q = Bidirectional(LSTM(30))(embedded_question)
-l_lstm_a = Bidirectional(LSTM(10))(embedded_answer)
+l_lstm_a = Bidirectional(LSTM(20))(embedded_answer)
 
 concat_c_q = concatenate([l_lstm_c, l_lstm_q], axis = 1)
 softmax_c_q = Dense(EMBEDDING_DIM, activation='softmax')(concat_c_q)
 
 concat_c_q_a = concatenate([l_lstm_a, softmax_c_q], axis = 1)
+drop = Dropout(0.1)(concat_c_q_a)
 
-softmax_c_q = Dense(2, activation='softmax')(concat_c_q_a)
+softmax_c_q = Dense(2, activation='softmax')(drop)
 model = Model([context, question, answer], softmax_c_q)
+opt = keras.optimizers.Nadam()
 model.compile(loss='categorical_crossentropy',
-              optimizer='rmsprop',
+              optimizer=opt,
               metrics=['acc'])
 
 print("model fitting - Bidirectional LSTM")
+filepath="allData-{epoch:02d}-{val_acc:.2f}.hdf5"
+
+checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=1, save_best_only=True, mode='max')
 model.summary()
 model.fit({'context': context_data, 'question': question_data, 'answer': answer_data}, y_train,
           validation_data=({'context': context_data_v, 'question': question_data_v, 'answer': answer_data_v}, y_val),
-          nb_epoch=5, batch_size=20)
+          nb_epoch=40, batch_size=512, callbacks=[checkpoint])
 
