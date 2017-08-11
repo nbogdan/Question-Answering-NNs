@@ -12,6 +12,7 @@ import re, string
 from nltk.stem import WordNetLemmatizer
 import pickle
 
+from models.LSTMwithCNN import LSTMwithCNN
 from models.simpleCNN import SimpleCNNModel
 from models.simpleLSTM import SimpleLSTMModel
 from siamese.data_helpers import get_lemmas
@@ -176,6 +177,9 @@ def trainModelOnFolder(modelName, folderName):
     if modelName == "simpleLSTM":
         model = SimpleLSTMModel(data['word_index'], data['embedding_matrix'])
         model.train(data['train'], data['val'], folderName)
+    if modelName == "LSTMwithCNN":
+        model = LSTMwithCNN(data['word_index'], data['embedding_matrix'])
+        model.train(data['train'], data['val'], folderName)
 
 if __name__ == '__main__':
-    trainModelOnFolder("simpleLSTM", "data_test_extra/")
+    trainModelOnFolder("LSTMwithCNN", "data_test_extra/")
