@@ -1,4 +1,4 @@
-from keras.layers import Embedding, Dropout, Dense, Input, Convolution1D, MaxPooling1D, Flatten, Concatenate
+from keras.layers import Embedding, Dropout, Dense, Input, Convolution1D, MaxPooling1D, Flatten, Concatenate, merge
 from keras.models import Model
 from keras.optimizers import Nadam, RMSprop
 from keras.callbacks import ModelCheckpoint
@@ -11,7 +11,7 @@ EMBEDDING_DIM = 300
 VALIDATION_SPLIT = 0.1
 VERSION = "1"
 
-class SimpleCNNModel():
+class CosCNN():
     def __init__(self, word_index, embedding_matrix):
         embedding_layer_c = Embedding(len(word_index) + 1,
                                     EMBEDDING_DIM,
@@ -65,10 +65,14 @@ class SimpleCNNModel():
         conv_c = MaxPooling1D(pool_size=2)(conv_c)
         conv_c = Flatten()(conv_c)
 
-        z = Concatenate()(conv_blocksA + conv_blocksQ + [conv_c])
-        z = Dropout(0.5)(z)
-        z = Dense(100, activation="relu")(z)
-        softmax_c_q = Dense(2, activation='softmax')(z)
+        z_q = Concatenate()(conv_blocksA + [conv_c])
+        z_a = Concatenate()(conv_blocksQ + [conv_c])
+        z_q = Dropout(0.5)(z_q)
+        z_a = Dropout(0.5)(z_a)
+        z_q = Dense(100, activation="relu")(z_q)
+        z_a = Dense(100, activation="relu")(z_a)
+        concat_c_q_a = merge([z_q, z_a], mode='cos')
+        softmax_c_q = Dense(2, activation='softmax')(concat_c_q_a)
         self.model = Model([context, question, answer], softmax_c_q)
         opt = Nadam()
         self.model.compile(loss='categorical_crossentropy',
@@ -79,11 +83,11 @@ class SimpleCNNModel():
         context_data, question_data, answer_data, y_train = train_data
         context_data_v, question_data_v, answer_data_v, y_val = validation_data
         print("Model Fitting")
-        filepath = folder + "structures/cnn" + VERSION + "-final-{epoch:02d}-{val_acc:.2f}.hdf5"
+        filepath = folder + "structures/cos-cnn" + VERSION + "-final-{epoch:02d}-{val_acc:.2f}.hdf5"
 
         checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=1, save_best_only=True, mode='max')
         model_json = self.model.to_json()
-        with open(folder + "/structures/cnn-model" + VERSION + ".json", "w") as json_file:
+        with open(folder + "/structures/cos-cnn-model" + VERSION + ".json", "w") as json_file:
             json_file.write(model_json)
         self.model.summary()
         self.model.fit({'context': context_data, 'question': question_data, 'answer': answer_data}, y_train,

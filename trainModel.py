@@ -13,8 +13,11 @@ from nltk.stem import WordNetLemmatizer
 import pickle
 
 from models.LSTMwithCNN import LSTMwithCNN
+from models.cosLSTM import CosLSTM
 from models.simpleCNN import SimpleCNNModel
 from models.simpleLSTM import SimpleLSTMModel
+from models.cosCNN import CosCNN
+from models.AttentionLSTM import AttentionLSTM
 from siamese.data_helpers import get_lemmas
 
 MAX_SEQUENCE_LENGTH_Q = 100
@@ -171,8 +174,15 @@ def loadAndPrepareDataTrain(folder):
 def trainModelOnFolder(modelName, folderName):
     data = loadAndPrepareDataTrain(folderName)
 
+
+    if modelName == "cosCNN":
+        model = CosCNN(data['word_index'], data['embedding_matrix'])
+        model.train(data['train'], data['val'], folderName)
     if modelName == "simpleCNN":
         model = SimpleCNNModel(data['word_index'], data['embedding_matrix'])
+        model.train(data['train'], data['val'], folderName)
+    if modelName == "cosLSTM":
+        model = CosLSTM(data['word_index'], data['embedding_matrix'])
         model.train(data['train'], data['val'], folderName)
     if modelName == "simpleLSTM":
         model = SimpleLSTMModel(data['word_index'], data['embedding_matrix'])
@@ -180,6 +190,14 @@ def trainModelOnFolder(modelName, folderName):
     if modelName == "LSTMwithCNN":
         model = LSTMwithCNN(data['word_index'], data['embedding_matrix'])
         model.train(data['train'], data['val'], folderName)
+    if modelName == "attentionLSTM":
+        model = AttentionLSTM(data['word_index'], data['embedding_matrix'])
+        model.train(data['train'], data['val'], folderName)
 
 if __name__ == '__main__':
+    trainModelOnFolder("simpleLSTM", "data_test_extra/")
+    trainModelOnFolder("cosLSTM", "data_test_extra/")
+    trainModelOnFolder("simpleCNN", "data_test_extra/")
+    trainModelOnFolder("cosCNN", "data_test_extra/")
+    trainModelOnFolder("layeredLSTM", "data_test_extra/")
     trainModelOnFolder("LSTMwithCNN", "data_test_extra/")

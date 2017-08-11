@@ -67,4 +67,4 @@ class SimpleLSTMModel():
         self.model.summary()
         self.model.fit({'context': context_data, 'question': question_data, 'answer': answer_data}, y_train,
                   validation_data=({'context': context_data_v, 'question': question_data_v, 'answer': answer_data_v}, y_val),
-                  epochs=100, batch_size=256, callbacks=[checkpoint])
+                  epochs=50, batch_size=256, callbacks=[checkpoint])
