@@ -69,8 +69,8 @@ class CosCNN():
         z_a = Concatenate()(conv_blocksQ + [conv_c])
         z_q = Dropout(0.5)(z_q)
         z_a = Dropout(0.5)(z_a)
-        z_q = Dense(100, activation="relu")(z_q)
-        z_a = Dense(100, activation="relu")(z_a)
+        z_q = Dense(100, activation="tanh")(z_q)
+        z_a = Dense(100, activation="tanh")(z_a)
         concat_c_q_a = merge([z_q, z_a], mode='cos')
         softmax_c_q = Dense(2, activation='softmax')(concat_c_q_a)
         self.model = Model([context, question, answer], softmax_c_q)
@@ -85,11 +85,11 @@ class CosCNN():
         print("Model Fitting")
         filepath = folder + "structures/cos-cnn" + VERSION + "-final-{epoch:02d}-{val_acc:.2f}.hdf5"
 
-        checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=1, save_best_only=True, mode='max')
+        checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=0, save_best_only=True, mode='max')
         model_json = self.model.to_json()
         with open(folder + "/structures/cos-cnn-model" + VERSION + ".json", "w") as json_file:
             json_file.write(model_json)
         self.model.summary()
         self.model.fit({'context': context_data, 'question': question_data, 'answer': answer_data}, y_train,
                   validation_data=({'context': context_data_v, 'question': question_data_v, 'answer': answer_data_v}, y_val),
-                  epochs=50, batch_size=256, callbacks=[checkpoint])
+                  epochs=50, batch_size=256, callbacks=[checkpoint], verbose=2)

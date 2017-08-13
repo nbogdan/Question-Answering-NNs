@@ -60,11 +60,11 @@ class SimpleLSTMModel():
         print("Model Fitting")
         filepath = folder + "structures/lstm-nn" + VERSION + "-final-{epoch:02d}-{val_acc:.2f}.hdf5"
 
-        checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=1, save_best_only=True, mode='max')
+        checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=0, save_best_only=True, mode='max')
         model_json = self.model.to_json()
         with open(folder + "/structures/lstm-model" + VERSION + ".json", "w") as json_file:
             json_file.write(model_json)
         self.model.summary()
         self.model.fit({'context': context_data, 'question': question_data, 'answer': answer_data}, y_train,
                   validation_data=({'context': context_data_v, 'question': question_data_v, 'answer': answer_data_v}, y_val),
-                  epochs=50, batch_size=256, callbacks=[checkpoint])
+                  epochs=50, batch_size=256, callbacks=[checkpoint], verbose=2)

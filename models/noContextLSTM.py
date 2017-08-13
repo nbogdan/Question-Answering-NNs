@@ -14,13 +14,8 @@ EMBEDDING_DIM = 300
 VALIDATION_SPLIT = 0.1
 VERSION = "1"
 
-class LayeredLSTM():
+class NoContextLSTMModel():
     def __init__(self, word_index, embedding_matrix):
-        embedding_layer_c = Embedding(len(word_index) + 1,
-                                    EMBEDDING_DIM,
-                                    weights=[embedding_matrix],
-                                    input_length=MAX_SEQUENCE_LENGTH_C,
-                                    trainable=False)
         embedding_layer_q = Embedding(len(word_index) + 1,
                                       EMBEDDING_DIM,
                                       weights=[embedding_matrix],
@@ -31,25 +26,18 @@ class LayeredLSTM():
                                       weights=[embedding_matrix],
                                       input_length=MAX_SEQUENCE_LENGTH_A,
                                       trainable=False)
-        context = Input(shape=(MAX_SEQUENCE_LENGTH_C,), dtype='int32', name='context')
         question = Input(shape=(MAX_SEQUENCE_LENGTH_Q,), dtype='int32', name='question')
         answer = Input(shape=(MAX_SEQUENCE_LENGTH_A,), dtype='int32', name='answer')
-        embedded_context = embedding_layer_c(context)
         embedded_question = embedding_layer_q(question)
         embedded_answer = embedding_layer_a(answer)
 
-        l_lstm_c = Bidirectional(LSTM(60, return_sequences=True))(embedded_context)
-        l_lstm_c = Bidirectional(LSTM(60))(l_lstm_c)
         l_lstm_q = Bidirectional(LSTM(60))(embedded_question)
         l_lstm_a = Bidirectional(LSTM(60))(embedded_answer)
 
-        concat_c_q = concatenate([l_lstm_q, l_lstm_c], axis=1)
-        relu_c_q = Dense(100, activation='relu')(concat_c_q)
-        relu_c_q = Dropout(0.25)(relu_c_q)
-        concat_c_q_a = concatenate([l_lstm_a, relu_c_q], axis = 1)
+        concat_c_q_a = concatenate([l_lstm_a, l_lstm_q], axis = 1)
 
         softmax_c_q_a = Dense(2, activation='softmax')(concat_c_q_a)
-        self.model = Model([question, answer, context], softmax_c_q_a)
+        self.model = Model([question, answer], softmax_c_q_a)
         opt = Nadam()
         self.model.compile(loss='categorical_crossentropy',
                       optimizer=opt,
@@ -59,13 +47,13 @@ class LayeredLSTM():
         context_data, question_data, answer_data, y_train = train_data
         context_data_v, question_data_v, answer_data_v, y_val = validation_data
         print("Model Fitting")
-        filepath = folder + "structures/layered-lstm-nn" + VERSION + "-final-{epoch:02d}-{val_acc:.2f}.hdf5"
+        filepath = folder + "structures/no-context-lstm-nn" + VERSION + "-final-{epoch:02d}-{val_acc:.2f}.hdf5"
 
         checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=0, save_best_only=True, mode='max')
         model_json = self.model.to_json()
-        with open(folder + "/structures/layered-lstm-model" + VERSION + ".json", "w") as json_file:
+        with open(folder + "/structures/no-context-lstm-model" + VERSION + ".json", "w") as json_file:
             json_file.write(model_json)
         self.model.summary()
-        self.model.fit({'context': context_data, 'question': question_data, 'answer': answer_data}, y_train,
-                  validation_data=({'context': context_data_v, 'question': question_data_v, 'answer': answer_data_v}, y_val),
+        self.model.fit({'question': question_data, 'answer': answer_data}, y_train,
+                  validation_data=({'question': question_data_v, 'answer': answer_data_v}, y_val),
                   epochs=50, batch_size=256, callbacks=[checkpoint], verbose=2)

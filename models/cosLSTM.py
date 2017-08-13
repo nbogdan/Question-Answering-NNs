@@ -43,14 +43,12 @@ class CosLSTM():
         l_lstm_a = Bidirectional(LSTM(60))(embedded_answer)
 
         concat_c_q = concatenate([l_lstm_q, l_lstm_c], axis=1)
-        relu_c_q = Dense(100, activation='relu')(concat_c_q)
+        relu_c_q = Dense(100, activation='tanh')(concat_c_q)
         concat_c_a = concatenate([l_lstm_a, l_lstm_c], axis=1)
-        relu_c_a = Dense(100, activation='relu')(concat_c_a)
-        relu_c_q = Dropout(0.25)(relu_c_q)
-        relu_c_a = Dropout(0.25)(relu_c_a)
+        relu_c_a = Dense(100, activation='tanh')(concat_c_a)
+        relu_c_q = Dropout(0.5)(relu_c_q)
+        relu_c_a = Dropout(0.5)(relu_c_a)
         concat_c_q_a = merge([relu_c_a, relu_c_q], mode='cos')
-        concat_c_q_a = Flatten()(concat_c_q_a)
-
         softmax_c_q_a = Dense(2, activation='softmax')(concat_c_q_a)
         self.model = Model([question, answer, context], softmax_c_q_a)
         opt = Nadam()
@@ -64,11 +62,14 @@ class CosLSTM():
         print("Model Fitting")
         filepath = folder + "structures/cos-lstm-nn" + VERSION + "-final-{epoch:02d}-{val_acc:.2f}.hdf5"
 
-        checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=1, save_best_only=True, mode='max')
+        checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=0, save_best_only=True, mode='max')
         model_json = self.model.to_json()
         with open(folder + "/structures/cos-lstm-model" + VERSION + ".json", "w") as json_file:
             json_file.write(model_json)
         self.model.summary()
+        import numpy as np
+        context_data = np.array(list(map(lambda x: x[:MAX_SEQUENCE_LENGTH_C], context_data)))
+        context_data_v = np.array(list(map(lambda x: x[:MAX_SEQUENCE_LENGTH_C], context_data_v)))
         self.model.fit({'context': context_data, 'question': question_data, 'answer': answer_data}, y_train,
                   validation_data=({'context': context_data_v, 'question': question_data_v, 'answer': answer_data_v}, y_val),
-                  epochs=50, batch_size=256, callbacks=[checkpoint])
+                  epochs=50, batch_size=256, callbacks=[checkpoint], verbose=2)

@@ -14,6 +14,8 @@ import pickle
 
 from models.LSTMwithCNN import LSTMwithCNN
 from models.cosLSTM import CosLSTM
+from models.noContextCNN import NoContextCNNModel
+from models.noContextLSTM import NoContextLSTMModel
 from models.simpleCNN import SimpleCNNModel
 from models.simpleLSTM import SimpleLSTMModel
 from models.cosCNN import CosCNN
@@ -174,7 +176,6 @@ def loadAndPrepareDataTrain(folder):
 def trainModelOnFolder(modelName, folderName):
     data = loadAndPrepareDataTrain(folderName)
 
-
     if modelName == "cosCNN":
         model = CosCNN(data['word_index'], data['embedding_matrix'])
         model.train(data['train'], data['val'], folderName)
@@ -193,11 +194,26 @@ def trainModelOnFolder(modelName, folderName):
     if modelName == "attentionLSTM":
         model = AttentionLSTM(data['word_index'], data['embedding_matrix'])
         model.train(data['train'], data['val'], folderName)
+    if modelName == "noContextLSTM":
+        model = NoContextLSTMModel(data['word_index'], data['embedding_matrix'])
+        model.train(data['train'], data['val'], folderName)
+    if modelName == "noContextCNN":
+        model = NoContextCNNModel(data['word_index'], data['embedding_matrix'])
+        model.train(data['train'], data['val'], folderName)
 
 if __name__ == '__main__':
+    trainModelOnFolder("simpleLSTM", "data_test_small/")
+    trainModelOnFolder("noContextLSTM", "data_test_small/")
+    trainModelOnFolder("cosLSTM", "data_test_small/")
+    trainModelOnFolder("simpleCNN", "data_test_small/")
+    trainModelOnFolder("noContextCNN", "data_test_small/")
+    trainModelOnFolder("cosCNN", "data_test_small/")
+    trainModelOnFolder("LSTMwithCNN", "data_test_small/")
+    
     trainModelOnFolder("simpleLSTM", "data_test_extra/")
-    trainModelOnFolder("cosLSTM", "data_test_extra/")
+    trainModelOnFolder("noContextLSTM", "data_test_extra/")
+    trainModelOnFolder("cosLSTM", "data_test_small/")
     trainModelOnFolder("simpleCNN", "data_test_extra/")
+    trainModelOnFolder("noContextCNN", "data_test_extra/")
     trainModelOnFolder("cosCNN", "data_test_extra/")
-    trainModelOnFolder("layeredLSTM", "data_test_extra/")
     trainModelOnFolder("LSTMwithCNN", "data_test_extra/")
