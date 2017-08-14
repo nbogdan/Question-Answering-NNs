@@ -202,18 +202,18 @@ def trainModelOnFolder(modelName, folderName):
         model.train(data['train'], data['val'], folderName)
 
 if __name__ == '__main__':
-    trainModelOnFolder("simpleLSTM", "data_test_small/")
+    # trainModelOnFolder("simpleLSTM", "data_test_small/")
     trainModelOnFolder("noContextLSTM", "data_test_small/")
     trainModelOnFolder("cosLSTM", "data_test_small/")
     trainModelOnFolder("simpleCNN", "data_test_small/")
     trainModelOnFolder("noContextCNN", "data_test_small/")
     trainModelOnFolder("cosCNN", "data_test_small/")
-    trainModelOnFolder("LSTMwithCNN", "data_test_small/")
+    # trainModelOnFolder("LSTMwithCNN", "data_test_small/")
     
-    trainModelOnFolder("simpleLSTM", "data_test_extra/")
+    # trainModelOnFolder("simpleLSTM", "data_test_extra/")
     trainModelOnFolder("noContextLSTM", "data_test_extra/")
     trainModelOnFolder("cosLSTM", "data_test_small/")
-    trainModelOnFolder("simpleCNN", "data_test_extra/")
+    # trainModelOnFolder("simpleCNN", "data_test_extra/")
     trainModelOnFolder("noContextCNN", "data_test_extra/")
     trainModelOnFolder("cosCNN", "data_test_extra/")
-    trainModelOnFolder("LSTMwithCNN", "data_test_extra/")
+    # trainModelOnFolder("LSTMwithCNN", "data_test_extra/")

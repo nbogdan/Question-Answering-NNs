@@ -40,19 +40,19 @@ class NoContextCNNModel():
             conv = MaxPooling1D(pool_size=2)(conv)
             conv = Flatten()(conv)
             conv_blocksA.append(conv)
-        for sz in [5,7]:
+        for sz in [5,7, 9]:
             conv = Convolution1D(filters=20,
                                  kernel_size=sz,
                                  padding="valid",
                                  activation="relu",
                                  strides=1)(embedded_question)
-            conv = MaxPooling1D(pool_size=2)(conv)
+            conv = MaxPooling1D(pool_size=3)(conv)
             conv = Flatten()(conv)
             conv_blocksQ.append(conv)
 
         z = Concatenate()(conv_blocksA + conv_blocksQ)
         z = Dropout(0.5)(z)
-        z = Dense(100, activation="tanh")(z)
+        z = Dense(100, activation="relu")(z)
         softmax_c_q = Dense(2, activation='softmax')(z)
         self.model = Model([question, answer], softmax_c_q)
         opt = Nadam()
@@ -73,4 +73,4 @@ class NoContextCNNModel():
         self.model.summary()
         self.model.fit({'question': question_data, 'answer': answer_data}, y_train,
                   validation_data=({'question': question_data_v, 'answer': answer_data_v}, y_val),
-                  epochs=50, batch_size=256, callbacks=[checkpoint], verbose=2)
+                  epochs=100, batch_size=512, callbacks=[checkpoint], verbose=2)
