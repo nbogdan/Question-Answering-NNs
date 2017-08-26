@@ -60,14 +60,14 @@ def preprocessData(folder):
     print('Saved lemmas')
 
 
-def checkModelForFolder(modelName, folderName, testData):
+def checkModelForFolder(modelName, folderName, testData, weightsFile):
     context_data, question_data, answer_data, y_test = testData
     json_file = open(folderName + 'structures/' + modelName, 'r')
     loaded_model_json = json_file.read()
     json_file.close()
     loaded_model = model_from_json(loaded_model_json)
     # load weights into new model
-    loaded_model.load_weights(folderName + 'structures/nn1-final-03-0.56.hdf5')
+    loaded_model.load_weights(folderName + 'structures/' + weightsFile)
 
     opt = keras.optimizers.Nadam()
     loaded_model.compile(loss='categorical_crossentropy',
@@ -98,7 +98,6 @@ def loadTestData(folderName):
     texts_c3 = pickle.load(open(folderName + 'c_test_lemmas_c', 'rb'))
     texts_q3 = pickle.load(open(folderName + 'c_test_lemmas_q', 'rb'))
     texts_a3 = pickle.load(open(folderName + 'c_test_lemmas_a', 'rb'))
-
     tokenizer = pickle.load(open(folderName + 'structures/tokenizer', 'rb'))
     sequences_q = tokenizer.texts_to_sequences(texts_q3)
     sequences_a = tokenizer.texts_to_sequences(texts_a3)
@@ -123,11 +122,13 @@ def loadTestData(folderName):
         data_c[i * 4], data_q[i * 4], data_a[i * 4], labels[i * 4] = aux
     return [data_c, data_q, data_a, labels]
 
-def red(modelName, folderName):
+def red(modelName, folderName, weightsFile):
     data = loadTestData(folderName)
 
-    checkModelForFolder(modelName, folderName, data)
+    checkModelForFolder(modelName, folderName, data, weightsFile)
 
 if __name__ == '__main__':
     # preprocessData("data_test_extra/")
-    red("cnn-model1.json", "data_test_extra/")
+    model = "cos-cnn"
+    print('Testing model %', model)
+    red(model + "-model1.json", "data_test_extra/", 'cos-cnn1-final-46-0.93.hdf5')
