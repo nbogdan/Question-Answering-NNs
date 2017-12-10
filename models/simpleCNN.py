@@ -39,7 +39,7 @@ class SimpleCNNModel():
         conv_blocksA = []
         conv_blocksQ = []
         for sz in [3,5]:
-            conv = Convolution1D(filters=20,
+            conv = Convolution1D(filters=10,
                                  kernel_size=sz,
                                  padding="valid",
                                  activation="relu",
@@ -48,7 +48,7 @@ class SimpleCNNModel():
             conv = Flatten()(conv)
             conv_blocksA.append(conv)
         for sz in [5,7]:
-            conv = Convolution1D(filters=20,
+            conv = Convolution1D(filters=10,
                                  kernel_size=sz,
                                  padding="valid",
                                  activation="relu",
@@ -57,7 +57,7 @@ class SimpleCNNModel():
             conv = Flatten()(conv)
             conv_blocksQ.append(conv)
 
-        conv_c = Convolution1D(filters=40,
+        conv_c = Convolution1D(filters=5,
                                  kernel_size=9,
                                  padding="valid",
                                  activation="relu",
@@ -65,9 +65,9 @@ class SimpleCNNModel():
         conv_c = MaxPooling1D(pool_size=2)(conv_c)
         conv_c = Flatten()(conv_c)
 
-        z = Concatenate()(conv_blocksA + conv_blocksQ + [conv_c])
-        z = Dropout(0.5)(z)
-        z = Dense(100, activation="relu")(z)
+        z_q = Concatenate()(conv_blocksA + conv_blocksQ + [conv_c])
+        z = Dropout(0.25)(z_q)
+        z = Dense(100, activation="tanh")(z)
         softmax_c_q = Dense(2, activation='softmax')(z)
         self.model = Model([context, question, answer], softmax_c_q)
         opt = Nadam()
@@ -88,4 +88,4 @@ class SimpleCNNModel():
         self.model.summary()
         self.model.fit({'context': context_data, 'question': question_data, 'answer': answer_data}, y_train,
                   validation_data=({'context': context_data_v, 'question': question_data_v, 'answer': answer_data_v}, y_val),
-                  epochs=50, batch_size=256, callbacks=[checkpoint], verbose=2)
+                  epochs=50, batch_size=512, callbacks=[checkpoint], verbose=2)

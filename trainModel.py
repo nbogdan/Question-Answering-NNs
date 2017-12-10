@@ -1,26 +1,23 @@
 # author - Richard Liao
 # Dec 26 2016
+import pickle
+import re
+
 import numpy as np
 import pandas as pd
-
-
-from bs4 import BeautifulSoup
-from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
+from keras.preprocessing.text import Tokenizer
 from keras.utils.np_utils import to_categorical
-import re, string
 from nltk.stem import WordNetLemmatizer
-import pickle
 
 from models.LSTMwithCNN import LSTMwithCNN
+from models.cosCNN import CosCNN
 from models.cosLSTM import CosLSTM
 from models.noContextCNN import NoContextCNNModel
 from models.noContextLSTM import NoContextLSTMModel
 from models.simpleCNN import SimpleCNNModel
 from models.simpleLSTM import SimpleLSTMModel
-from models.cosCNN import CosCNN
-from models.AttentionLSTM import AttentionLSTM
-from siamese.data_helpers import get_lemmas
+from utils.data_helpers import get_lemmas
 
 MAX_SEQUENCE_LENGTH_Q = 100
 MAX_SEQUENCE_LENGTH_A = 20
@@ -41,45 +38,40 @@ def clean_str(string):
     return string.strip().lower()
 
 def preprocessData(folder):
-    data_train = pd.read_csv(folder + 'data/train_datum.txt', sep='\t', error_bad_lines=False)
-    data_test = pd.read_csv(folder + 'data/classic_test_datum.txt', sep='\t')
-    texts_q = []
-    texts_a = []
-    texts_c = []
+    data_train = pd.read_csv(folder + 'data/train_datum.txt', sep='\t')
+    data_test = pd.read_csv(folder + 'data/test_datum.txt', sep='\t')
+    train_texts_q = []
+    train_texts_a = []
+    train_texts_c = []
     test_texts_q = []
     test_texts_a = []
     test_texts_c = []
 
     for idx in range(data_train.question.shape[0]):
-        text = BeautifulSoup(data_train.question[idx], "html.parser")
-        texts_q.append(clean_str(str(text.get_text().encode('ascii', 'ignore')))[1:])
-        text = BeautifulSoup(data_train.answer[idx], "html.parser")
-        texts_a.append(clean_str(str(text.get_text().encode('ascii', 'ignore')))[1:])
-        text = BeautifulSoup(str(data_train.context[idx]), "html.parser")
-        texts_c.append(clean_str(str(text.get_text().encode('ascii', 'ignore')))[1:])
+        train_texts_q.append(clean_str(data_train.question[idx]))
+        train_texts_a.append(clean_str(data_train.answer[idx]))
+        train_texts_c.append(clean_str(data_train.context[idx]))
+
     for idx in range(data_test.question.shape[0]):
-        text = BeautifulSoup(data_train.question[idx], "html.parser")
-        test_texts_q.append(clean_str(str(text.get_text().encode('ascii', 'ignore')))[1:])
-        text = BeautifulSoup(data_train.answer[idx], "html.parser")
-        test_texts_a.append(clean_str(str(text.get_text().encode('ascii', 'ignore')))[1:])
-        text = BeautifulSoup(str(data_train.context[idx]), "html.parser")
-        test_texts_c.append(clean_str(str(text.get_text().encode('ascii', 'ignore')))[1:])
+        test_texts_q.append(clean_str(data_test.question[idx]))
+        test_texts_a.append(clean_str(data_test.answer[idx]))
+        test_texts_c.append(clean_str(data_test.context[idx]))
 
     lemmatizer = WordNetLemmatizer()
-    texts_c3 = [" ".join(get_lemmas(re.findall(r'\b\w+\b', s), lemmatizer)) for s in texts_c]
-    texts_q3 = [" ".join(get_lemmas(re.findall(r'\b\w+\b', s), lemmatizer)) for s in texts_q]
-    texts_a3 = [" ".join(get_lemmas(re.findall(r'\b\w+\b', s), lemmatizer)) for s in texts_a]
+    train_texts_c3 = [" ".join(get_lemmas(re.findall(r'\b\w+\b', s), lemmatizer)) for s in train_texts_c]
+    train_texts_q3 = [" ".join(get_lemmas(re.findall(r'\b\w+\b', s), lemmatizer)) for s in train_texts_q]
+    train_texts_a3 = [" ".join(get_lemmas(re.findall(r'\b\w+\b', s), lemmatizer)) for s in train_texts_a]
 
-    test_texts_c3 = [" ".join(get_lemmas(re.findall(r'\b\w+\b', s), lemmatizer)) for s in texts_c]
-    test_texts_q3 = [" ".join(get_lemmas(re.findall(r'\b\w+\b', s), lemmatizer)) for s in texts_q]
-    test_texts_a3 = [" ".join(get_lemmas(re.findall(r'\b\w+\b', s), lemmatizer)) for s in texts_a]
+    test_texts_c3 = [" ".join(get_lemmas(re.findall(r'\b\w+\b', s), lemmatizer)) for s in test_texts_c]
+    test_texts_q3 = [" ".join(get_lemmas(re.findall(r'\b\w+\b', s), lemmatizer)) for s in test_texts_q]
+    test_texts_a3 = [" ".join(get_lemmas(re.findall(r'\b\w+\b', s), lemmatizer)) for s in test_texts_a]
 
     with open(folder + 'train_lemmas_c', 'wb') as fp:
-        pickle.dump(texts_c3, fp)
+        pickle.dump(train_texts_c3, fp)
     with open(folder + 'train_lemmas_q', 'wb') as fp:
-        pickle.dump(texts_q3, fp)
+        pickle.dump(train_texts_q3, fp)
     with open(folder + 'train_lemmas_a', 'wb') as fp:
-        pickle.dump(texts_a3, fp)
+        pickle.dump(train_texts_a3, fp)
     with open(folder + 'test_lemmas_c', 'wb') as fp:
         pickle.dump(test_texts_c3, fp)
     with open(folder + 'test_lemmas_q', 'wb') as fp:
@@ -89,7 +81,7 @@ def preprocessData(folder):
     print('Saved lemmas')
 
     tokenizer = Tokenizer(nb_words=MAX_NB_WORDS)
-    tokenizer.fit_on_texts(texts_q3 + texts_c3 + texts_a3 + test_texts_a3 + test_texts_c3 + test_texts_q3)
+    tokenizer.fit_on_texts(train_texts_q3 + train_texts_c3 + train_texts_a3 + test_texts_a3 + test_texts_c3 + test_texts_q3)
     print('Saving tokenizer')
     with open(folder + 'structures/tokenizer', 'wb') as fp:
         pickle.dump(tokenizer, fp)
@@ -191,9 +183,6 @@ def trainModelOnFolder(modelName, folderName):
     if modelName == "LSTMwithCNN":
         model = LSTMwithCNN(data['word_index'], data['embedding_matrix'])
         model.train(data['train'], data['val'], folderName)
-    if modelName == "attentionLSTM":
-        model = AttentionLSTM(data['word_index'], data['embedding_matrix'])
-        model.train(data['train'], data['val'], folderName)
     if modelName == "noContextLSTM":
         model = NoContextLSTMModel(data['word_index'], data['embedding_matrix'])
         model.train(data['train'], data['val'], folderName)
@@ -202,18 +191,19 @@ def trainModelOnFolder(modelName, folderName):
         model.train(data['train'], data['val'], folderName)
 
 if __name__ == '__main__':
+    # preprocessData('data_test_small/')
     # trainModelOnFolder("simpleLSTM", "data_test_small/")
-    trainModelOnFolder("noContextLSTM", "data_test_small/")
-    trainModelOnFolder("cosLSTM", "data_test_small/")
+    # trainModelOnFolder("noContextLSTM", "data_test_small/")
+    # trainModelOnFolder("cosLSTM", "data_test_small/")
     trainModelOnFolder("simpleCNN", "data_test_small/")
-    trainModelOnFolder("noContextCNN", "data_test_small/")
-    trainModelOnFolder("cosCNN", "data_test_small/")
+    # trainModelOnFolder("noContextCNN", "data_test_small/")
+    # trainModelOnFolder("cosCNN", "data_test_small/")
     # trainModelOnFolder("LSTMwithCNN", "data_test_small/")
     
     # trainModelOnFolder("simpleLSTM", "data_test_extra/")
-    trainModelOnFolder("noContextLSTM", "data_test_extra/")
-    trainModelOnFolder("cosLSTM", "data_test_small/")
+    # trainModelOnFolder("noContextLSTM", "data_test_extra/")
+    # trainModelOnFolder("cosLSTM", "data_test_extra/")
     # trainModelOnFolder("simpleCNN", "data_test_extra/")
-    trainModelOnFolder("noContextCNN", "data_test_extra/")
-    trainModelOnFolder("cosCNN", "data_test_extra/")
+    # trainModelOnFolder("noContextCNN", "data_test_extra/")
+    # trainModelOnFolder("cosCNN", "data_test_extra/")
     # trainModelOnFolder("LSTMwithCNN", "data_test_extra/")
