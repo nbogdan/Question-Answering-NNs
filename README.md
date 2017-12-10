@@ -12,11 +12,13 @@ Given a dataset the recommendation is to place it in the following manner:
 -create 2 folders in it called "data" and "structures"
 -place the dataset in a file called "datum.txt" in the "data" folder
 
+```
 ./
   dataset_name
     structures
     data
       datum.txt
+```
 
 ## How to train/use the network
 - In order to split the dataset into training and testing run splitDatum.py
