@@ -1,7 +1,7 @@
 import numpy as np
 import pickle
 import random
-FOLDER = './data_small/data'
+FOLDER = '../data_small/data/'
 
 
 def split_data():
@@ -15,8 +15,8 @@ def split_data():
     lines_true_train = list(filter(lambda x: x[3]=="1", not_test))
     lines_false_train = list(filter(lambda x: x[3]=="0", not_test))
 
-    f_train = open(FOLDER + 'test_datum.txt', 'w', encoding='utf8')
-    f_test = open(FOLDER + 'train_datum.txt', 'w', encoding='utf8')
+    f_train = open(FOLDER + 'train_datum.txt', 'w', encoding='utf8')
+    f_test = open(FOLDER + 'test_datum.txt', 'w', encoding='utf8')
 
     f_train.write('\t'.join(lines[0]) + '\n')
     f_test.write('\t'.join(lines[0]) + '\n')

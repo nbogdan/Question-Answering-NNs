@@ -46,7 +46,7 @@ def checkModelForFolder(modelName, folderName, testData, weightsFile):
     print(correct / total)
 
 def loadTestData(folderName):
-    data_train = pd.read_csv(folderName + 'data/classic_test_datum.txt', sep='\t', error_bad_lines=False)
+    data_train = pd.read_csv(folderName + 'data/test_datum.txt', sep='\t', error_bad_lines=False)
     labels = []
     for idx in range(data_train.question.shape[0]):
         labels.append(data_train.value[idx])
@@ -76,4 +76,4 @@ def checkModel(modelName, folderName, weightsFile):
 if __name__ == '__main__':
     model = "cnn"
     print('Testing model %', model)
-    checkModel(model + "-model1.json", "data_small/", 'cnn1-final-01-0.52.hdf5')
+    checkModel(model + "-model1.json", "data_small/", 'cnn1-final-28-0.87.hdf5')

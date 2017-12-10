@@ -191,7 +191,8 @@ def trainModelOnFolder(modelName, folderName):
         model.train(data['train'], data['val'], folderName)
 
 if __name__ == '__main__':
-    # preprocessData('data_small/')
+    preprocessData('data_small/')
+
     # trainModelOnFolder("simpleLSTM", "data_small/")
     # trainModelOnFolder("noContextLSTM", "data_small/")
     # trainModelOnFolder("cosLSTM", "data_small/")
