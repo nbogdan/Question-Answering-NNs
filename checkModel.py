@@ -50,9 +50,9 @@ def loadTestData(folderName):
     labels = []
     for idx in range(data_train.question.shape[0]):
         labels.append(data_train.value[idx])
-    texts_c3 = pickle.load(open(folderName + 'c_test_lemmas_c', 'rb'))
-    texts_q3 = pickle.load(open(folderName + 'c_test_lemmas_q', 'rb'))
-    texts_a3 = pickle.load(open(folderName + 'c_test_lemmas_a', 'rb'))
+    texts_c3 = pickle.load(open(folderName + 'test_lemmas_c', 'rb'))
+    texts_q3 = pickle.load(open(folderName + 'test_lemmas_q', 'rb'))
+    texts_a3 = pickle.load(open(folderName + 'test_lemmas_a', 'rb'))
     tokenizer = pickle.load(open(folderName + 'structures/tokenizer', 'rb'))
     sequences_q = tokenizer.texts_to_sequences(texts_q3)
     sequences_a = tokenizer.texts_to_sequences(texts_a3)
@@ -74,7 +74,6 @@ def checkModel(modelName, folderName, weightsFile):
     checkModelForFolder(modelName, folderName, loadTestData(folderName), weightsFile)
 
 if __name__ == '__main__':
-    # preprocessData("data_test_extra/")
     model = "cnn"
     print('Testing model %', model)
-    checkModel(model + "-model1.json", "data_test_small/", 'cnn1-final-01-0.52.hdf5')
+    checkModel(model + "-model1.json", "data_small/", 'cnn1-final-01-0.52.hdf5')

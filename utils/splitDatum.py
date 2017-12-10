@@ -35,7 +35,7 @@ def split_data():
 
 #not used anymore
 def eliminate_duplicates():
-    FOLDER = './data_test_extra/'
+    FOLDER = './data_extra/'
     texts_c3 = pickle.load(open(FOLDER + 'train_lemmas_c', 'rb'))
     texts_q3 = pickle.load(open(FOLDER + 'train_lemmas_q', 'rb'))
     texts_a3 = pickle.load(open(FOLDER + 'train_lemmas_a', 'rb'))
