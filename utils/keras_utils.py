@@ -125,7 +125,9 @@ class AttentionLayerV2(Layer):
         total_sum = K.sum(prob, axis=1, keepdims=True)
         prob /= K.cast(total_sum, K.floatx())
 
-        return prob
+        # Enable this if you want access to internal probabilities.
+        # Should only be used for testing that Attention works as expected.
+        # return prob
 
         # Multiply each hidden value by the corresponding probability.
         prob = K.expand_dims(prob, -1)
