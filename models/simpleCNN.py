@@ -39,7 +39,7 @@ class SimpleCNNModel():
         conv_blocksA = []
         conv_blocksQ = []
         for sz in [3,5]:
-            conv = Convolution1D(filters=10,
+            conv = Convolution1D(filters=20,
                                  kernel_size=sz,
                                  padding="valid",
                                  activation="relu",
@@ -48,7 +48,7 @@ class SimpleCNNModel():
             conv = Flatten()(conv)
             conv_blocksA.append(conv)
         for sz in [5,7]:
-            conv = Convolution1D(filters=10,
+            conv = Convolution1D(filters=20,
                                  kernel_size=sz,
                                  padding="valid",
                                  activation="relu",
@@ -57,7 +57,7 @@ class SimpleCNNModel():
             conv = Flatten()(conv)
             conv_blocksQ.append(conv)
 
-        conv_c = Convolution1D(filters=5,
+        conv_c = Convolution1D(filters=40,
                                  kernel_size=9,
                                  padding="valid",
                                  activation="relu",
@@ -66,8 +66,8 @@ class SimpleCNNModel():
         conv_c = Flatten()(conv_c)
 
         z_q = Concatenate()(conv_blocksA + conv_blocksQ + [conv_c])
-        z = Dropout(0.25)(z_q)
-        z = Dense(100, activation="tanh")(z)
+        z = Dropout(0.5)(z_q)
+        z = Dense(100, activation="relu")(z)
         softmax_c_q = Dense(2, activation='softmax')(z)
         self.model = Model([context, question, answer], softmax_c_q)
         opt = Nadam()
