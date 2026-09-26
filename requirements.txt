@@ -1,0 +1,11 @@
+# Targets Python 3.5.
+# Keras must stay below 2.2: the cosine models use keras.layers.merge(mode='cos'),
+# which was removed in Keras 2.2.0.
+keras==2.1.6
+tensorflow==1.8.0
+h5py==2.8.0
+numpy==1.14.5
+pandas==0.23.4
+nltk==3.3
+# Only needed by utils/semantic_focus.py
+gensim==1.0.1

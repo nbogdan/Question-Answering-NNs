@@ -1,3 +1,5 @@
+import gensim
+
 examples = [
     {"q": "Which example describes a learned behavior in a dog?",
      "a": ["smelling the air for odors", "barking when disturbed", "sitting on command", "digging in soil"],
@@ -16,6 +18,6 @@ def extractFocus(question, answers):
 def extractSemanticVector(answer):
     None
 
-model = gensim.models.Word2Vec.load_word2vec_format('../../../Word2Vec/GoogleNews-vectors-paraphrase-300.bin', binary=True)
+model = gensim.models.KeyedVectors.load_word2vec_format('../../../Word2Vec/GoogleNews-vectors-paraphrase-300.bin', binary=True)
 model.init_sims(replace=True)
 print("Loaded word2vec model")
